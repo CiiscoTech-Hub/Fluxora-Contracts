@@ -75,7 +75,7 @@ fn test_cancel_then_withdraw_at(offset: u64) {
     if expected_vested == 0 {
         assert_eq!(
             h.client.try_withdraw(&id, &None).unwrap_err().unwrap(),
-            Error::NothingToWithdraw
+            Error::StreamTerminated
         );
     } else {
         h.client.withdraw(&id, &None);
