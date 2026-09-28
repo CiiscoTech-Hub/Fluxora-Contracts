@@ -209,6 +209,37 @@ fn an_already_withdrawn_stream_is_skipped_without_failing_the_batch() {
     h.assert_pool_exact();
 }
 
+/// Covers the terminal case where a stream is Cancelled and fully drawn (or never drawn).
+/// A single `withdraw` would return `StreamTerminated(14)`, but `batch_withdraw` skips it
+/// without failing the batch.
+#[test]
+fn a_cancelled_terminal_stream_is_skipped_without_failing_the_batch() {
+    let h = Harness::new();
+    let terminal = h.create_simple(100 * ONE, 100 * DAY);
+    let pending = h.create_simple(100 * ONE, 100 * DAY);
+    
+    // Cancel the first stream immediately. It is now terminal (Cancelled) with 0 withdrawable.
+    h.client.cancel(&terminal);
+    
+    h.advance(10 * DAY);
+
+    let total = h
+        .client
+        .batch_withdraw(&h.recipient, &h.ids(&[terminal, pending]));
+    let events = withdrawn_event_ids(&h);
+
+    assert_eq!(total, 10 * ONE, "only the active stream pays");
+    assert_eq!(
+        events,
+        std::vec![pending],
+        "emits only for the active stream"
+    );
+    assert_eq!(h.get(terminal).status, crate::StreamStatus::Cancelled);
+    assert_eq!(h.get(terminal).withdrawn, 0);
+    assert_eq!(h.get(pending).withdrawn, 10 * ONE);
+    h.assert_pool_exact();
+}
+
 /// Covers the "over-withdrawn" case of the missing/unauthorized/over-withdrawn
 /// triad the reviewer asked for: a stream whose `withdrawn` has somehow moved
 /// past `deposited` (the only way this can arise is direct storage
