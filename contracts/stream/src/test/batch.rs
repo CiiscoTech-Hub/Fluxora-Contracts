@@ -217,10 +217,10 @@ fn a_cancelled_terminal_stream_is_skipped_without_failing_the_batch() {
     let h = Harness::new();
     let terminal = h.create_simple(100 * ONE, 100 * DAY);
     let pending = h.create_simple(100 * ONE, 100 * DAY);
-    
+
     // Cancel the first stream immediately. It is now terminal (Cancelled) with 0 withdrawable.
     h.client.cancel(&terminal);
-    
+
     h.advance(10 * DAY);
 
     let total = h
